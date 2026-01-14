@@ -2,7 +2,9 @@
 
 /* --- CONFIGURATION --- */
 const API_KEY = "AIzaSyAXG3iG2oQjUA_BpnO8dK8y-MHJ7HLrhyE"; 
-const UPLOAD_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby96W9Mf1fvsfdp7dpzRCEiQEvFEg3ZiSa-iEnYgbr4Zu2bC7IcQVMTxudp4QDofAg3/exec";
+
+// [UPDATED] New Web App URL for your Google Sheet
+const UPLOAD_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby7p0PdogmrY2wnkVdzCA_Te3BNBEtx9YUrW9VRGRsdSQUz0NIZixty-w-oe7kQhPfULA/exec";
 
 const DRIVE_FOLDERS = {
   earrings: "1ySHR6Id5RxVj16-lf7NMN9I61RPySY9s",
@@ -30,6 +32,10 @@ let isProcessingHand = false, isProcessingFace = false;
 let lastGestureTime = 0;
 const GESTURE_COOLDOWN = 800; 
 let previousHandX = null;     
+
+/* [UPDATED] Tracking Variables for Google Sheet */
+const sessionStartTime = Date.now(); // Starts timer when page loads
+let currentAssetName = "Default Design"; // Tracks specific item name
 
 /* Camera State */
 let currentCameraMode = 'user'; 
@@ -168,11 +174,12 @@ async function preloadCategory(type) {
     loadingStatus.style.display = 'none';
 }
 
-/* --- 4. WHATSAPP AUTOMATION --- */
+/* --- 4. WHATSAPP AUTOMATION & SHEET UPDATE --- */
 function requestWhatsApp(actionType) {
     pendingDownloadAction = actionType; document.getElementById('whatsapp-modal').style.display = 'flex';
 }
 function closeWhatsAppModal() { document.getElementById('whatsapp-modal').style.display = 'none'; pendingDownloadAction = null; }
+
 function confirmWhatsAppDownload() {
     const phoneInput = document.getElementById('user-phone');
     const phone = phoneInput.value.trim();
@@ -180,7 +187,10 @@ function confirmWhatsAppDownload() {
     document.getElementById('whatsapp-modal').style.display = 'none';
     const overlay = document.getElementById('process-overlay');
     overlay.style.display = 'flex'; document.getElementById('process-text').innerText = "Sending to WhatsApp...";
+    
+    // Trigger upload to sheet
     uploadToDrive(phone);
+    
     setTimeout(() => {
         const msg = encodeURIComponent("Hi! Here is my Jewels-Ai virtual try-on look. Thanks!");
         window.open(`https://wa.me/${phone.replace('+','')}?text=${msg}`, '_blank');
@@ -189,13 +199,34 @@ function confirmWhatsAppDownload() {
         setTimeout(() => { overlay.style.display = 'none'; }, 2500);
     }, 1500);
 }
+
+// [UPDATED] Function to send data to the new Google Sheet Structure
 function uploadToDrive(phone) {
+    // 1. Calculate Duration
+    const sessionDuration = Math.round((Date.now() - sessionStartTime) / 1000); 
+    
+    // 2. Get Data
     const data = pendingDownloadAction === 'single' ? currentPreviewData : (autoSnapshots[0] || {}); 
-    if(!data.url) return;
+    
+    // 3. Create Payload matching your Excel columns
+    const payload = {
+        phone: phone,
+        photoLink: data.name, // Sending filename as reference (since full image upload requires more complex backend)
+        duration: sessionDuration,
+        photosCount: autoSnapshots.length,
+        itemsViewed: currentAssetName,
+        category: currentType
+    };
+
+    // 4. Send to Google Apps Script
     fetch(UPLOAD_SCRIPT_URL, {
-        method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone, image: data.url, filename: data.name })
-    }).catch(err => console.error("Upload failed", err));
+        method: 'POST', 
+        mode: 'no-cors', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(() => console.log("Data sent to sheet"))
+    .catch(err => console.error("Sheet Upload failed", err));
 }
 
 /* --- DOWNLOAD & SHARE --- */
@@ -363,18 +394,24 @@ window.onload = async () => {
     selectJewelryType('earrings');
 };
 
-/* --- UI HELPERS --- */
+/* --- UI HELPERS & TRACKING --- */
 function navigateJewelry(dir) {
   if (!currentType || !PRELOADED_IMAGES[currentType]) return;
   const list = PRELOADED_IMAGES[currentType];
   let currentImg = (currentType === 'earrings') ? earringImg : (currentType === 'chains') ? necklaceImg : (currentType === 'rings') ? ringImg : bangleImg;
   let idx = list.indexOf(currentImg); if (idx === -1) idx = 0; 
   let nextIdx = (idx + dir + list.length) % list.length;
+  
   const nextItem = list[nextIdx];
   if (currentType === 'earrings') earringImg = nextItem;
   else if (currentType === 'chains') necklaceImg = nextItem;
   else if (currentType === 'rings') ringImg = nextItem;
   else if (currentType === 'bangles') bangleImg = nextItem;
+
+  // [UPDATED] Track Current Item Name
+  if (JEWELRY_ASSETS[currentType] && JEWELRY_ASSETS[currentType][nextIdx]) {
+      currentAssetName = JEWELRY_ASSETS[currentType][nextIdx].name;
+  }
 }
 
 async function selectJewelryType(type) {
@@ -390,6 +427,11 @@ async function selectJewelryType(type) {
       const firstItem = PRELOADED_IMAGES[type][0];
       if (type === 'earrings') earringImg = firstItem; else if (type === 'chains') necklaceImg = firstItem;
       else if (type === 'rings') ringImg = firstItem; else if (type === 'bangles') bangleImg = firstItem;
+      
+      // [UPDATED] Track Item Name on Category Switch
+      if(JEWELRY_ASSETS[type] && JEWELRY_ASSETS[type][0]) {
+          currentAssetName = JEWELRY_ASSETS[type][0].name;
+      }
   }
   const container = document.getElementById('jewelry-options'); container.innerHTML = ''; container.style.display = 'flex';
   if (!JEWELRY_ASSETS[type]) return;
@@ -403,6 +445,9 @@ async function selectJewelryType(type) {
         const fullImg = PRELOADED_IMAGES[type][i];
         if (type === 'earrings') earringImg = fullImg; else if (type === 'chains') necklaceImg = fullImg;
         else if (type === 'rings') ringImg = fullImg; else if (type === 'bangles') bangleImg = fullImg;
+        
+        // [UPDATED] Track Item Name on Click
+        currentAssetName = file.name;
     };
     container.appendChild(btnImg);
   });
@@ -430,6 +475,12 @@ async function runAutoStep() {
     const targetImg = assets[autoTryIndex];
     if (currentType === 'earrings') earringImg = targetImg; else if (currentType === 'chains') necklaceImg = targetImg;
     else if (currentType === 'rings') ringImg = targetImg; else if (currentType === 'bangles') bangleImg = targetImg;
+    
+    // [UPDATED] Track Item during Auto Try
+    if(JEWELRY_ASSETS[currentType] && JEWELRY_ASSETS[currentType][autoTryIndex]) {
+        currentAssetName = JEWELRY_ASSETS[currentType][autoTryIndex].name;
+    }
+    
     autoTryTimeout = setTimeout(() => { triggerFlash(); captureToGallery(); autoTryIndex++; runAutoStep(); }, 1500); 
 }
 
