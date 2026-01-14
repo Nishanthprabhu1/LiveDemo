@@ -1,4 +1,4 @@
-/* script.js - Jewels-Ai Atelier: Clean Look (No Sparkles) */
+/* script.js - Jewels-Ai Atelier: Fixed Text Wrapping & Bar */
 
 /* --- CONFIGURATION --- */
 const API_KEY = "AIzaSyAXG3iG2oQjUA_BpnO8dK8y-MHJ7HLrhyE"; 
@@ -271,14 +271,12 @@ hands.onResults((results) => {
           canvasCtx.translate(handSmoother.ring.x, handSmoother.ring.y); 
           canvasCtx.rotate(handSmoother.ring.angle); 
           
-          // Shadow 50% reduced
           canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
           canvasCtx.shadowBlur = 10;
           canvasCtx.shadowOffsetX = 5;
           canvasCtx.shadowOffsetY = 5;
 
           const currentDist = handSmoother.ring.size / 0.6;
-          // Image offset 
           const yOffset = currentDist * 0.15;
           canvasCtx.drawImage(ringImg, -handSmoother.ring.size/2, yOffset, handSmoother.ring.size, rHeight); 
           canvasCtx.restore();
@@ -458,11 +456,12 @@ async function runAutoStep() {
     autoTryTimeout = setTimeout(() => { triggerFlash(); captureToGallery(); autoTryIndex++; runAutoStep(); }, 1500); 
 }
 
-/* --- CAPTURE & GALLERY (UPDATED FOR TEXT WRAPPING & LOGO PLACEMENT) --- */
+/* --- CAPTURE & GALLERY (FIXED WRAPPING) --- */
 function captureToGallery() {
   const tempCanvas = document.createElement('canvas'); tempCanvas.width = videoElement.videoWidth; tempCanvas.height = videoElement.videoHeight;
   const tempCtx = tempCanvas.getContext('2d');
   
+  // Handle mirroring
   if (currentCameraMode === 'environment') {
       tempCtx.translate(0, 0); tempCtx.scale(1, 1); 
   } else {
@@ -470,10 +469,10 @@ function captureToGallery() {
   }
 
   tempCtx.drawImage(videoElement, 0, 0);
-  tempCtx.setTransform(1, 0, 0, 1, 0, 0); 
+  tempCtx.setTransform(1, 0, 0, 1, 0, 0); // Reset for text/logo
   try { tempCtx.drawImage(canvasElement, 0, 0); } catch(e) {}
   
-  // --- 1. PREPARE TEXT CONTENT ---
+  // --- 1. CLEAN NAME & SPLIT UNDERSCORES ---
   let displayName = "Jewels-Ai Look";
   if (currentType && PRELOADED_IMAGES[currentType]) {
       let currentImgObj = null;
@@ -483,19 +482,23 @@ function captureToGallery() {
       if (currentImgObj) {
           const idx = PRELOADED_IMAGES[currentType].indexOf(currentImgObj);
           if (idx !== -1 && JEWELRY_ASSETS[currentType] && JEWELRY_ASSETS[currentType][idx]) {
-              displayName = JEWELRY_ASSETS[currentType][idx].name.replace(/\.[^/.]+$/, "");
+              displayName = JEWELRY_ASSETS[currentType][idx].name
+                  .replace(/\.[^/.]+$/, "")  // Remove Extension
+                  .replace(/[_-]/g, " ");    // Replace Underscores/Hyphens with Space
           }
       }
   }
 
-  // --- 2. CONFIG: FONT & PADDING ---
-  const fontSize = 24;
-  const padding = 20;
-  const lineHeight = 32;
+  // --- 2. CONFIG: DYNAMIC FONT & PADDING ---
+  // Scale font based on canvas width (e.g., 30px on 720p, 40px on 1080p)
+  const fontSize = Math.max(24, Math.floor(tempCanvas.width / 30));
+  const padding = Math.floor(tempCanvas.width / 40); // Dynamic padding
+  const lineHeight = fontSize * 1.3;
+  
   tempCtx.font = `bold ${fontSize}px Montserrat, sans-serif`;
   const maxWidth = tempCanvas.width - (padding * 2);
 
-  // --- 3. LOGIC: WORD WRAP ---
+  // --- 3. WRAP LOGIC ---
   const words = displayName.split(' ');
   let lines = [];
   let currentLine = words[0];
@@ -511,12 +514,12 @@ function captureToGallery() {
   }
   lines.push(currentLine);
 
-  // --- 4. DRAW BACKGROUND BAR (DARK & SEMI-TRANSPARENT) ---
+  // --- 4. DRAW BACKGROUND BAR ---
   const totalTextHeight = lines.length * lineHeight;
-  const barHeight = totalTextHeight + padding; // Extra padding for visual comfort
+  const barHeight = totalTextHeight + padding; // Extra padding
   const barY = tempCanvas.height - barHeight;
 
-  tempCtx.fillStyle = "rgba(0, 0, 0, 0.6)"; // Dark background for readability
+  tempCtx.fillStyle = "rgba(0, 0, 0, 0.6)"; 
   tempCtx.fillRect(0, barY, tempCanvas.width, barHeight);
 
   // --- 5. DRAW TEXT ---
@@ -528,11 +531,10 @@ function captureToGallery() {
       tempCtx.fillText(line, padding, barY + (padding/2) + (index * lineHeight));
   });
 
-  // --- 6. LOGO PLACEMENT: TOP RIGHT ---
+  // --- 6. DRAW LOGO (TOP RIGHT) ---
   if (watermarkImg.complete) {
       const wWidth = tempCanvas.width * 0.25; 
       const wHeight = (watermarkImg.height / watermarkImg.width) * wWidth;
-      // Position: X = Far Right - Width - Padding, Y = Top Padding
       tempCtx.drawImage(watermarkImg, tempCanvas.width - wWidth - padding, padding, wWidth, wHeight);
   }
   
