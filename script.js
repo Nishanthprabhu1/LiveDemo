@@ -1,4 +1,4 @@
-/* script.js - Jewels-Ai Atelier: Clean Look (No Shadows, Fixed Text) */
+/* script.js - Jewels-Ai Atelier: Clean Look + Premium Description Overlay */
 
 /* --- CONFIGURATION --- */
 const API_KEY = "AIzaSyAXG3iG2oQjUA_BpnO8dK8y-MHJ7HLrhyE"; 
@@ -270,13 +270,6 @@ hands.onResults((results) => {
           canvasCtx.save(); 
           canvasCtx.translate(handSmoother.ring.x, handSmoother.ring.y); 
           canvasCtx.rotate(handSmoother.ring.angle); 
-          
-          // SHADOW REMOVED
-          // canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
-          // canvasCtx.shadowBlur = 10;
-          // canvasCtx.shadowOffsetX = 5;
-          // canvasCtx.shadowOffsetY = 5;
-
           const currentDist = handSmoother.ring.size / 0.6;
           const yOffset = currentDist * 0.15;
           canvasCtx.drawImage(ringImg, -handSmoother.ring.size/2, yOffset, handSmoother.ring.size, rHeight); 
@@ -289,13 +282,6 @@ hands.onResults((results) => {
           canvasCtx.save(); 
           canvasCtx.translate(handSmoother.bangle.x, handSmoother.bangle.y); 
           canvasCtx.rotate(handSmoother.bangle.angle);
-
-          // SHADOW REMOVED
-          // canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
-          // canvasCtx.shadowBlur = 10;
-          // canvasCtx.shadowOffsetX = 6;
-          // canvasCtx.shadowOffsetY = 6;
-
           canvasCtx.drawImage(bangleImg, -handSmoother.bangle.size/2, -bHeight/2, handSmoother.bangle.size, bHeight); 
           canvasCtx.restore();
       }
@@ -344,12 +330,6 @@ faceMesh.onResults((results) => {
       const ratio = distToLeft / (distToLeft + distToRight);
       const xShift = ew * 0.05; 
 
-      // SHADOW REMOVED
-      // canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
-      // canvasCtx.shadowBlur = 8;
-      // canvasCtx.shadowOffsetX = 4;
-      // canvasCtx.shadowOffsetY = 4;
-
       if (ratio > 0.2) { 
           canvasCtx.save(); 
           canvasCtx.translate(leftEar.x, leftEar.y); 
@@ -369,13 +349,6 @@ faceMesh.onResults((results) => {
 
     if (necklaceImg && necklaceImg.complete) {
       let nw = earDist * 0.85; let nh = (necklaceImg.height/necklaceImg.width) * nw;
-      
-      // SHADOW REMOVED
-      // canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
-      // canvasCtx.shadowBlur = 10;
-      // canvasCtx.shadowOffsetX = 0; 
-      // canvasCtx.shadowOffsetY = 6;
-      
       const neckY = neck.y + (earDist*0.1);
       canvasCtx.drawImage(necklaceImg, neck.x - nw/2, neckY, nw, nh);
     }
@@ -460,12 +433,14 @@ async function runAutoStep() {
     autoTryTimeout = setTimeout(() => { triggerFlash(); captureToGallery(); autoTryIndex++; runAutoStep(); }, 1500); 
 }
 
-/* --- CAPTURE & GALLERY (FIXED WRAPPING) --- */
+/* --- CAPTURE & GALLERY WITH PREMIUM DESCRIPTION --- */
 function captureToGallery() {
-  const tempCanvas = document.createElement('canvas'); tempCanvas.width = videoElement.videoWidth; tempCanvas.height = videoElement.videoHeight;
+  const tempCanvas = document.createElement('canvas'); 
+  tempCanvas.width = videoElement.videoWidth; 
+  tempCanvas.height = videoElement.videoHeight;
   const tempCtx = tempCanvas.getContext('2d');
   
-  // Handle mirroring
+  // 1. Draw Camera Feed (Mirrored or Normal)
   if (currentCameraMode === 'environment') {
       tempCtx.translate(0, 0); tempCtx.scale(1, 1); 
   } else {
@@ -473,37 +448,23 @@ function captureToGallery() {
   }
 
   tempCtx.drawImage(videoElement, 0, 0);
-  tempCtx.setTransform(1, 0, 0, 1, 0, 0); // Reset for text/logo
+  tempCtx.setTransform(1, 0, 0, 1, 0, 0); // Reset for overlays
   try { tempCtx.drawImage(canvasElement, 0, 0); } catch(e) {}
   
-  // --- 1. CLEAN NAME & SPLIT UNDERSCORES ---
-  let displayName = "Jewels-Ai Look";
-  if (currentType && PRELOADED_IMAGES[currentType]) {
-      let currentImgObj = null;
-      if (currentType === 'earrings') currentImgObj = earringImg; else if (currentType === 'chains') currentImgObj = necklaceImg;
-      else if (currentType === 'rings') currentImgObj = ringImg; else if (currentType === 'bangles') currentImgObj = bangleImg;
+  // 2. DEFINE THE TEXT
+  const productTitle = "Product Code: '25252'";
+  const productDesc = "This exquisite gold earring features a unique triangular drop design adorned with intricate filigree work and stylized peacock motifs. It highlights a central teardrop red stone (kemp or ruby) and is finished with a festive fringe of hanging gold balls and deep red beads. A perfect blend of classic temple artistry and elegance.";
 
-      if (currentImgObj) {
-          const idx = PRELOADED_IMAGES[currentType].indexOf(currentImgObj);
-          if (idx !== -1 && JEWELRY_ASSETS[currentType] && JEWELRY_ASSETS[currentType][idx]) {
-              displayName = JEWELRY_ASSETS[currentType][idx].name
-                  .replace(/\.[^/.]+$/, "")  // Remove Extension
-                  .replace(/[_-]/g, " ");    // Replace Underscores/Hyphens with Space
-          }
-      }
-  }
-
-  // --- 2. CONFIG: DYNAMIC FONT & PADDING ---
-  // Scale font based on canvas width (e.g., 30px on 720p, 40px on 1080p)
-  const fontSize = Math.max(24, Math.floor(tempCanvas.width / 30));
-  const padding = Math.floor(tempCanvas.width / 40); // Dynamic padding
-  const lineHeight = fontSize * 1.3;
+  // 3. SETTINGS & METRICS
+  const padding = tempCanvas.width * 0.04; // 4% padding
+  const titleSize = tempCanvas.width * 0.045; // Title Size
+  const descSize = tempCanvas.width * 0.025; // Desc Size
+  const lineHeight = descSize * 1.4;
   
-  tempCtx.font = `bold ${fontSize}px Montserrat, sans-serif`;
+  // Calculate Wrapped Description Lines
+  tempCtx.font = `${descSize}px Montserrat, sans-serif`;
   const maxWidth = tempCanvas.width - (padding * 2);
-
-  // --- 3. WRAP LOGIC ---
-  const words = displayName.split(' ');
+  const words = productDesc.split(' ');
   let lines = [];
   let currentLine = words[0];
 
@@ -518,32 +479,46 @@ function captureToGallery() {
   }
   lines.push(currentLine);
 
-  // --- 4. DRAW BACKGROUND BAR ---
-  const totalTextHeight = lines.length * lineHeight;
-  const barHeight = totalTextHeight + padding; // Extra padding
-  const barY = tempCanvas.height - barHeight;
+  // 4. CALCULATE BOX HEIGHT
+  // Title Height + Spacer + (Lines * LineHeight) + Bottom Padding
+  const contentHeight = (titleSize * 1.5) + (titleSize * 0.5) + (lines.length * lineHeight) + padding;
+  
+  // 5. DRAW GRADIENT BACKGROUND
+  const gradient = tempCtx.createLinearGradient(0, tempCanvas.height - contentHeight - padding, 0, tempCanvas.height);
+  gradient.addColorStop(0, "rgba(0,0,0,0)");      // Transparent top
+  gradient.addColorStop(0.2, "rgba(0,0,0,0.8)");  // Dark start
+  gradient.addColorStop(1, "rgba(0,0,0,0.95)");   // Solid bottom
+  
+  tempCtx.fillStyle = gradient;
+  tempCtx.fillRect(0, tempCanvas.height - contentHeight - padding, tempCanvas.width, contentHeight + padding);
 
-  tempCtx.fillStyle = "rgba(0, 0, 0, 0.6)"; 
-  tempCtx.fillRect(0, barY, tempCanvas.width, barHeight);
-
-  // --- 5. DRAW TEXT ---
-  tempCtx.textAlign = "left"; 
+  // 6. DRAW TITLE (GOLD)
+  tempCtx.font = `bold ${titleSize}px Playfair Display, serif`;
+  tempCtx.fillStyle = "#d4af37"; // Gold Color
+  tempCtx.textAlign = "left";
   tempCtx.textBaseline = "top";
-  tempCtx.fillStyle = "white"; 
+  const titleY = tempCanvas.height - contentHeight;
+  tempCtx.fillText(productTitle, padding, titleY);
+
+  // 7. DRAW DESCRIPTION (WHITE)
+  tempCtx.font = `${descSize}px Montserrat, sans-serif`;
+  tempCtx.fillStyle = "#ffffff"; // White Color
+  const descStartY = titleY + (titleSize * 1.5); // Start below title
   
   lines.forEach((line, index) => {
-      tempCtx.fillText(line, padding, barY + (padding/2) + (index * lineHeight));
+      tempCtx.fillText(line, padding, descStartY + (index * lineHeight));
   });
 
-  // --- 6. DRAW LOGO (TOP RIGHT) ---
+  // 8. DRAW WATERMARK (Top Right)
   if (watermarkImg.complete) {
       const wWidth = tempCanvas.width * 0.25; 
       const wHeight = (watermarkImg.height / watermarkImg.width) * wWidth;
       tempCtx.drawImage(watermarkImg, tempCanvas.width - wWidth - padding, padding, wWidth, wHeight);
   }
   
+  // Save & Return
   const dataUrl = tempCanvas.toDataURL('image/png');
-  const safeName = displayName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const safeName = "Product_25252_Look";
   autoSnapshots.push({ url: dataUrl, name: `${safeName}_${Date.now()}.png` });
   return { url: dataUrl, name: `${safeName}_${Date.now()}.png` }; 
 }
