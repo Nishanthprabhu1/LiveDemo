@@ -1,4 +1,4 @@
-/* script.js - Jewels-Ai Atelier: Fixed Text Wrapping & Bar */
+/* script.js - Jewels-Ai Atelier: Clean Look (No Shadows, Fixed Text) */
 
 /* --- CONFIGURATION --- */
 const API_KEY = "AIzaSyAXG3iG2oQjUA_BpnO8dK8y-MHJ7HLrhyE"; 
@@ -271,10 +271,11 @@ hands.onResults((results) => {
           canvasCtx.translate(handSmoother.ring.x, handSmoother.ring.y); 
           canvasCtx.rotate(handSmoother.ring.angle); 
           
-          canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
-          canvasCtx.shadowBlur = 10;
-          canvasCtx.shadowOffsetX = 5;
-          canvasCtx.shadowOffsetY = 5;
+          // SHADOW REMOVED
+          // canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
+          // canvasCtx.shadowBlur = 10;
+          // canvasCtx.shadowOffsetX = 5;
+          // canvasCtx.shadowOffsetY = 5;
 
           const currentDist = handSmoother.ring.size / 0.6;
           const yOffset = currentDist * 0.15;
@@ -289,10 +290,11 @@ hands.onResults((results) => {
           canvasCtx.translate(handSmoother.bangle.x, handSmoother.bangle.y); 
           canvasCtx.rotate(handSmoother.bangle.angle);
 
-          canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
-          canvasCtx.shadowBlur = 10;
-          canvasCtx.shadowOffsetX = 6;
-          canvasCtx.shadowOffsetY = 6;
+          // SHADOW REMOVED
+          // canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
+          // canvasCtx.shadowBlur = 10;
+          // canvasCtx.shadowOffsetX = 6;
+          // canvasCtx.shadowOffsetY = 6;
 
           canvasCtx.drawImage(bangleImg, -handSmoother.bangle.size/2, -bHeight/2, handSmoother.bangle.size, bHeight); 
           canvasCtx.restore();
@@ -342,10 +344,11 @@ faceMesh.onResults((results) => {
       const ratio = distToLeft / (distToLeft + distToRight);
       const xShift = ew * 0.05; 
 
-      canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
-      canvasCtx.shadowBlur = 8;
-      canvasCtx.shadowOffsetX = 4;
-      canvasCtx.shadowOffsetY = 4;
+      // SHADOW REMOVED
+      // canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
+      // canvasCtx.shadowBlur = 8;
+      // canvasCtx.shadowOffsetX = 4;
+      // canvasCtx.shadowOffsetY = 4;
 
       if (ratio > 0.2) { 
           canvasCtx.save(); 
@@ -367,10 +370,11 @@ faceMesh.onResults((results) => {
     if (necklaceImg && necklaceImg.complete) {
       let nw = earDist * 0.85; let nh = (necklaceImg.height/necklaceImg.width) * nw;
       
-      canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
-      canvasCtx.shadowBlur = 10;
-      canvasCtx.shadowOffsetX = 0; 
-      canvasCtx.shadowOffsetY = 6;
+      // SHADOW REMOVED
+      // canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
+      // canvasCtx.shadowBlur = 10;
+      // canvasCtx.shadowOffsetX = 0; 
+      // canvasCtx.shadowOffsetY = 6;
       
       const neckY = neck.y + (earDist*0.1);
       canvasCtx.drawImage(necklaceImg, neck.x - nw/2, neckY, nw, nh);
