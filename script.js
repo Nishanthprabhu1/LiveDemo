@@ -344,10 +344,11 @@ faceMesh.onResults((results) => {
       const ratio = distToLeft / (distToLeft + distToRight);
       const xShift = ew * 0.05; 
 
-      canvasCtx.shadowColor = "rgba(0, 0, 0, 0.3)";
-      canvasCtx.shadowBlur = 8;
-      canvasCtx.shadowOffsetX = 4;
-      canvasCtx.shadowOffsetY = 4;
+      // --- SHADOW REMOVED FOR EARRINGS ---
+      canvasCtx.shadowColor = "transparent";
+      canvasCtx.shadowBlur = 0;
+      canvasCtx.shadowOffsetX = 0;
+      canvasCtx.shadowOffsetY = 0;
 
       if (ratio > 0.2) { 
           canvasCtx.save(); 
@@ -458,21 +459,26 @@ async function runAutoStep() {
     autoTryTimeout = setTimeout(() => { triggerFlash(); captureToGallery(); autoTryIndex++; runAutoStep(); }, 1500); 
 }
 
-/* --- CAPTURE & GALLERY --- */
+/* --- CAPTURE & GALLERY (UPDATED FOR TEXT WRAPPING & LOGO PLACEMENT) --- */
 function captureToGallery() {
-  const tempCanvas = document.createElement('canvas'); tempCanvas.width = videoElement.videoWidth; tempCanvas.height = videoElement.videoHeight;
+  const tempCanvas = document.createElement('canvas'); 
+  tempCanvas.width = videoElement.videoWidth; 
+  tempCanvas.height = videoElement.videoHeight;
   const tempCtx = tempCanvas.getContext('2d');
   
+  // 1. Draw Video
   if (currentCameraMode === 'environment') {
       tempCtx.translate(0, 0); tempCtx.scale(1, 1); 
   } else {
       tempCtx.translate(tempCanvas.width, 0); tempCtx.scale(-1, 1); 
   }
-
   tempCtx.drawImage(videoElement, 0, 0);
+  
+  // 2. Draw Overlay (Jewelry)
   tempCtx.setTransform(1, 0, 0, 1, 0, 0); 
   try { tempCtx.drawImage(canvasElement, 0, 0); } catch(e) {}
   
+  // 3. Get Description/Name
   let displayName = "Jewels-Ai Look";
   if (currentType && PRELOADED_IMAGES[currentType]) {
       let currentImgObj = null;
@@ -482,20 +488,67 @@ function captureToGallery() {
       if (currentImgObj) {
           const idx = PRELOADED_IMAGES[currentType].indexOf(currentImgObj);
           if (idx !== -1 && JEWELRY_ASSETS[currentType] && JEWELRY_ASSETS[currentType][idx]) {
+              // Strip file extension
               displayName = JEWELRY_ASSETS[currentType][idx].name.replace(/\.[^/.]+$/, "");
           }
       }
   }
   
-  const padding = 20; tempCtx.font = "bold 24px Montserrat, sans-serif"; tempCtx.textAlign = "left"; tempCtx.textBaseline = "bottom";
-  tempCtx.fillStyle = "white"; tempCtx.fillText(displayName, padding, tempCanvas.height - padding);
+  const padding = 20;
+
+  // 4. DRAW LOGO (TOP RIGHT)
   if (watermarkImg.complete) {
-      const wWidth = tempCanvas.width * 0.25; const wHeight = (watermarkImg.height / watermarkImg.width) * wWidth;
-      tempCtx.drawImage(watermarkImg, tempCanvas.width - wWidth - padding, tempCanvas.height - wHeight - padding, wWidth, wHeight);
+      const wWidth = tempCanvas.width * 0.25; // 25% of screen width
+      const wHeight = (watermarkImg.height / watermarkImg.width) * wWidth;
+      
+      // Position: Top Right (Width - LogoWidth - Padding, Padding)
+      tempCtx.drawImage(watermarkImg, tempCanvas.width - wWidth - padding, padding, wWidth, wHeight);
   }
+
+  // 5. DRAW TEXT (BOTTOM CENTER WITH WRAPPING)
+  tempCtx.font = "bold 24px Montserrat, sans-serif";
+  const lineHeight = 30;
+  const maxWidth = tempCanvas.width - (padding * 2); 
   
+  // Wrap Text Logic
+  const words = displayName.split(' ');
+  let line = '';
+  const lines = [];
+
+  for (let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    const metrics = tempCtx.measureText(testLine);
+    const testWidth = metrics.width;
+    if (testWidth > maxWidth && n > 0) {
+      lines.push(line);
+      line = words[n] + ' ';
+    } else {
+      line = testLine;
+    }
+  }
+  lines.push(line);
+
+  // Background Box for Text (Semi-transparent Black)
+  const totalTextHeight = lines.length * lineHeight;
+  const startY = tempCanvas.height - totalTextHeight - padding;
+  
+  tempCtx.fillStyle = "rgba(0, 0, 0, 0.5)"; // Dark background for readability
+  tempCtx.fillRect(0, startY - 10, tempCanvas.width, totalTextHeight + 20);
+
+  // Draw Text Lines
+  tempCtx.textAlign = "center"; 
+  tempCtx.textBaseline = "top";
+  tempCtx.fillStyle = "white";
+  
+  lines.forEach((lineText, i) => {
+      tempCtx.fillText(lineText, tempCanvas.width / 2, startY + (i * lineHeight));
+  });
+  
+  // 6. Final Export
   const dataUrl = tempCanvas.toDataURL('image/png');
-  const safeName = displayName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  // Create a safe short filename for saving
+  const safeName = displayName.substring(0, 20).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  
   autoSnapshots.push({ url: dataUrl, name: `${safeName}_${Date.now()}.png` });
   return { url: dataUrl, name: `${safeName}_${Date.now()}.png` }; 
 }
